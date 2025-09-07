@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuralChat - Advanced RAG System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap');
+        
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-purple: #8b5cf6;
+            --neon-pink: #f472b6;
+            --dark-bg: #0a0a0f;
+            --card-bg: rgba(15, 23, 42, 0.8);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-blue) transparent;
+        }
+
+        *::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        *::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+            border-radius: 3px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .title-font {
+            font-family: 'Orbitron', monospace;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .neon-border {
+            border: 2px solid transparent;
+            background: linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+                        linear-gradient(45deg, var(--neon-blue), var(--neon-purple)) border-box;
+        }
+
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3),
+                        0 0 40px rgba(139, 92, 246, 0.2),
+                        inset 0 0 20px rgba(255, 255, 255, 0.05);
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(0, 212, 255, 0.3);
+            background: rgba(0, 212, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+            opacity: 0;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--neon-blue);
+            background: rgba(0, 212, 255, 0.1);
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.4);
+        }
+
+        .upload-area.dragover::before {
+            opacity: 1;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .chunk-highlight {
+            background: linear-gradient(120deg, rgba(0, 212, 255, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            padding: 8px 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chunk-highlight::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: slide 2s infinite;
+        }
+
+        @keyframes slide {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .typing-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--neon-blue);
+            animation: typing 1.4s infinite ease-in-out;
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        .typing-indicator:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator:nth-child(2) { animation-delay: -0.16s; background: var(--neon-purple); box-shadow: 0 0 10px var(--neon-purple); }
+        .typing-indicator:nth-child(3) { background: var(--neon-pink); box-shadow: 0 0 10px var(--neon-pink); }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+
+        .floating-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--neon-blue);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+            box-shadow: 0 0 6px var(--neon-blue);
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0px);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .model-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .model-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .model-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .model-card:hover::after {
+            left: 100%;
+        }
+
+        .pulse-ring {
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2.4);
+                opacity: 0;
+            }
+        }
+
+        .connection-line {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .connection-line::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+            transform: translateY(-50%);
+            animation: flow 3s infinite;
+        }
+
+        @keyframes flow {
+            0% { transform: translateX(-100%) translateY(-50%); }
+            100% { transform: translateX(100%) translateY(-50%); }
+        }
+
+        .hologram-text {
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: hologram 3s ease-in-out infinite;
+        }
+
+        @keyframes hologram {
+            0%, 100% { filter: hue-rotate(0deg); }
+            50% { filter: hue-rotate(180deg); }
+        }
+
+        .btn-neon {
+            position: relative;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+            border: none;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .btn-neon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-neon:hover::before {
+            left: 100%;
+        }
+
+        .btn-neon:hover {
+            box-shadow: 0 0 20px var(--neon-blue), 0 0 40px var(--neon-purple);
+            transform: translateY(-2px);
+        }
+
+        .status-indicator {
+            position: relative;
+        }
+
+        .status-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            border: 2px solid var(--neon-blue);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse-ring 2s infinite;
+        }
+
+        .message-user {
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            position: relative;
+            overflow: hidden;
+        }
+
+        .message-assistant {
+            background: var(--glass-bg);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .message-user::before,
+        .message-assistant::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            animation: message-shine 3s infinite;
+        }
+
+        @keyframes message-shine {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Particles Background -->
+    <div class="floating-particles" id="particles"></div>
+    
+    <div class="container mx-auto px-4 py-8 max-w-7xl relative z-10">
+        <!-- Futuristic Header -->
+        <div class="text-center mb-12 relative">
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div class="w-32 h-32 rounded-full bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 opacity-20 blur-3xl pulse-ring"></div>
+            </div>
+            <h1 class="text-6xl font-black title-font hologram-text mb-4 relative z-10">
+                🧠 NEURALCHAT
+            </h1>
+            <div class="connection-line w-64 h-1 mx-auto mb-4"></div>
+            <p class="text-cyan-300 text-xl font-light tracking-wide">
+                Advanced RAG System • Neural Document Intelligence
+            </p>
+            <div class="flex justify-center items-center mt-4 space-x-4">
+                <div class="status-indicator w-3 h-3 bg-cyan-400 rounded-full"></div>
+                <span class="text-cyan-400 text-sm font-mono">SYSTEM ONLINE</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Document Upload Panel -->
+            <div class="lg:col-span-1">
+                <div class="glass-card neon-border rounded-2xl p-6 neon-glow">
+                    <div class="flex items-center mb-6">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-cyan-400 to-purple-500 flex items-center justify-center mr-3">
+                            <span class="text-white text-sm">📄</span>
+                        </div>
+                        <h2 class="text-xl font-bold text-white title-font">DOCUMENT UPLOAD</h2>
+                    </div>
+                    
+                    <!-- Upload Area -->
+                    <div id="uploadArea" class="upload-area rounded-2xl p-8 text-center mb-6 cursor-pointer">
+                        <div id="uploadContent">
+                            <div class="relative mb-4">
+                                <svg class="mx-auto h-16 w-16 text-cyan-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="w-20 h-20 rounded-full border-2 border-cyan-400 opacity-30 pulse-ring"></div>
+                                </div>
+                            </div>
+                            <p class="text-white font-medium mb-2">Drop files here or click to upload</p>
+                            <p class="text-sm text-cyan-300 font-mono">PDF • Markdown • HTML • TXT</p>
+                        </div>
+                    </div>
+                    
+                    <input type="file" id="fileInput" class="hidden" accept=".pdf,.md,.html,.txt" multiple>
+                    
+                    <!-- Processing Status -->
+                    <div id="processingStatus" class="hidden mb-6">
+                        <div class="glass-card border border-cyan-400 rounded-xl p-4">
+                            <div class="flex items-center">
+                                <div class="animate-spin rounded-full h-5 w-5 border-2 border-cyan-400 border-t-transparent mr-3"></div>
+                                <span class="text-cyan-300 text-sm font-mono">PROCESSING NEURAL PATTERNS...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Uploaded Documents -->
+                    <div id="documentList" class="space-y-2">
+                        <!-- Documents will be listed here -->
+                    </div>
+
+                    <!-- Model Configuration -->
+                    <div class="mt-8 pt-6 border-t border-cyan-400/30">
+                        <div class="flex items-center mb-4">
+                            <div class="w-6 h-6 rounded bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center mr-2">
+                                <span class="text-white text-xs">🤖</span>
+                            </div>
+                            <h3 class="text-sm font-bold text-white title-font">AI MODEL MATRIX</h3>
+                        </div>
+                        
+                        <!-- LLM Model Selection -->
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-cyan-300 mb-2 font-mono">LANGUAGE MODEL</label>
+                            <select id="llmModel" class="w-full text-sm bg-black/50 border border-cyan-400/50 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400">
+                                <option value="gpt-4">GPT-4 (OpenAI)</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo (OpenAI)</option>
+                                <option value="claude-3-opus">Claude 3 Opus (Anthropic)</option>
+                                <option value="claude-3-sonnet">Claude 3 Sonnet (Anthropic)</option>
+                                <option value="gemini-pro">Gemini Pro (Google)</option>
+                                <option value="llama-2-70b">Llama 2 70B (Meta)</option>
+                                <option value="mistral-large">Mistral Large</option>
+                                <option value="cohere-command">Command (Cohere)</option>
+                            </select>
+                        </div>
+
+                        <!-- Embedding Model Selection -->
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-purple-300 mb-2 font-mono">EMBEDDING MODEL</label>
+                            <select id="embeddingModel" class="w-full text-sm bg-black/50 border border-purple-400/50 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400">
+                                <option value="text-embedding-3-large">text-embedding-3-large (OpenAI)</option>
+                                <option value="text-embedding-ada-002">text-embedding-ada-002 (OpenAI)</option>
+                                <option value="sentence-transformers">all-MiniLM-L6-v2 (Sentence Transformers)</option>
+                                <option value="cohere-embed">Embed v3 (Cohere)</option>
+                                <option value="voyage-large">Voyage Large</option>
+                                <option value="e5-large">E5-Large (Microsoft)</option>
+                            </select>
+                        </div>
+
+                        <!-- Vector Database Selection -->
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-pink-300 mb-2 font-mono">VECTOR DATABASE</label>
+                            <select id="vectorDb" class="w-full text-sm bg-black/50 border border-pink-400/50 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400">
+                                <option value="faiss">FAISS (Local)</option>
+                                <option value="chromadb">ChromaDB</option>
+                                <option value="pinecone">Pinecone</option>
+                                <option value="weaviate">Weaviate</option>
+                                <option value="qdrant">Qdrant</option>
+                                <option value="milvus">Milvus</option>
+                            </select>
+                        </div>
+
+                        <!-- Model Info Display -->
+                        <div id="modelInfo" class="glass-card border border-cyan-400/30 rounded-xl p-4 mb-4 neon-glow">
+                            <div class="text-xs text-cyan-300 font-mono">
+                                <div class="font-bold mb-2 text-white">ACTIVE CONFIGURATION:</div>
+                                <div class="space-y-1">
+                                    <div>🧠 LLM: <span class="text-cyan-400">GPT-4</span></div>
+                                    <div>🔗 Embedding: <span class="text-purple-400">OpenAI Large</span></div>
+                                    <div>💾 Vector DB: <span class="text-pink-400">FAISS</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sample Documents -->
+                    <div class="mt-8 pt-6 border-t border-cyan-400/30">
+                        <div class="flex items-center mb-4">
+                            <div class="w-6 h-6 rounded bg-gradient-to-r from-green-400 to-blue-400 flex items-center justify-center mr-2">
+                                <span class="text-white text-xs">📖</span>
+                            </div>
+                            <h3 class="text-sm font-bold text-white title-font">SAMPLE DATASETS</h3>
+                        </div>
+                        <div class="space-y-3">
+                            <button onclick="loadSampleDocument('ml-guide')" class="model-card w-full text-left p-4 glass-card border border-cyan-400/30 rounded-xl transition-all hover:border-cyan-400">
+                                <div class="font-bold text-sm text-white mb-1">Machine Learning Guide</div>
+                                <div class="text-xs text-cyan-300 font-mono">Neural networks • Algorithms • Training</div>
+                            </button>
+                            <button onclick="loadSampleDocument('web-dev')" class="model-card w-full text-left p-4 glass-card border border-purple-400/30 rounded-xl transition-all hover:border-purple-400">
+                                <div class="font-bold text-sm text-white mb-1">Web Development Handbook</div>
+                                <div class="text-xs text-purple-300 font-mono">Frontend • Backend • Architecture</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Interface -->
+            <div class="lg:col-span-2">
+                <div class="glass-card neon-border rounded-2xl h-[700px] flex flex-col neon-glow">
+                    <!-- Chat Header -->
+                    <div class="p-6 border-b border-cyan-400/30">
+                        <div class="flex items-center mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-cyan-400 to-purple-500 flex items-center justify-center mr-3">
+                                <span class="text-white">💬</span>
+                            </div>
+                            <h2 class="text-xl font-bold text-white title-font">NEURAL INTERFACE</h2>
+                        </div>
+                        <p class="text-sm text-cyan-300 font-mono" id="chatStatus">AWAITING DOCUMENT UPLOAD...</p>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4">
+                        <div class="text-center text-cyan-300 py-12">
+                            <div class="relative mb-6">
+                                <svg class="mx-auto h-20 w-20 text-cyan-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="w-24 h-24 rounded-full border-2 border-cyan-400 opacity-30 pulse-ring"></div>
+                                </div>
+                            </div>
+                            <p class="font-mono text-lg">NEURAL INTERFACE READY</p>
+                            <p class="font-mono text-sm text-cyan-400 mt-2">Upload a document to begin neural analysis</p>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="p-6 border-t border-cyan-400/30">
+                        <div class="flex space-x-3">
+                            <input 
+                                type="text" 
+                                id="questionInput" 
+                                placeholder="Enter neural query..."
+                                class="flex-1 px-4 py-3 bg-black/50 border border-cyan-400/50 rounded-xl text-white placeholder-cyan-400/70 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 font-mono"
+                                disabled
+                            >
+                            <button 
+                                id="sendButton" 
+                                onclick="sendQuestion()" 
+                                class="btn-neon px-8 py-3 text-white rounded-xl font-bold title-font disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled
+                            >
+                                SEND
+                            </button>
+                        </div>
+                        
+                        <!-- Suggested Questions -->
+                        <div id="suggestedQuestions" class="hidden mt-4">
+                            <div class="text-xs text-cyan-400 mb-3 font-mono font-bold">💡 NEURAL SUGGESTIONS:</div>
+                            <div class="flex flex-wrap gap-2" id="questionSuggestions">
+                                <!-- Suggestions will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentDocument = null;
+        let documentChunks = [];
+        let isProcessing = false;
+        let currentConfig = {
+            llm: 'gpt-4',
+            embedding: 'text-embedding-3-large',
+            vectorDb: 'faiss'
+        };
+
+        // Sample documents with realistic content
+        const sampleDocuments = {
+            'ml-guide': {
+                title: 'Machine Learning Guide',
+                content: `# Machine Learning for Beginners
+
+## Introduction to Machine Learning
+Machine Learning (ML) is a subset of artificial intelligence that enables computers to learn and make decisions from data without being explicitly programmed for every task.
+
+## Types of Machine Learning
+
+### Supervised Learning
+Supervised learning involves labeled data and teaches the model using input-output pairs. The algorithm learns from training data that includes both the input features and the correct answers (labels). Common examples include:
+- Classification: Predicting categories (spam vs. not spam)
+- Regression: Predicting continuous values (house prices)
+
+Popular supervised learning algorithms include Linear Regression, Decision Trees, Random Forest, and Support Vector Machines.
+
+### Unsupervised Learning
+Unsupervised learning deals with unlabeled data and finds hidden patterns or groupings. The algorithm must discover structure in the data without knowing the correct answers. Types include:
+- Clustering: Grouping similar data points
+- Association: Finding relationships between variables
+- Dimensionality Reduction: Simplifying data while preserving important information
+
+Common unsupervised algorithms include K-Means Clustering, Hierarchical Clustering, and Principal Component Analysis (PCA).
+
+### Reinforcement Learning
+Reinforcement learning involves an agent learning through interaction with an environment, receiving rewards or penalties for actions. This approach is used in game playing, robotics, and autonomous systems.
+
+## Key Concepts
+
+### Training and Testing
+Machine learning models are trained on a subset of data (training set) and evaluated on unseen data (test set) to measure performance and avoid overfitting.
+
+### Feature Engineering
+The process of selecting and transforming variables for your model. Good features can significantly improve model performance.
+
+### Model Evaluation
+Common metrics include accuracy, precision, recall, F1-score for classification, and mean squared error for regression.
+
+## Popular Algorithms
+
+### Linear Regression
+A fundamental algorithm for predicting continuous values by finding the best line through data points.
+
+### Decision Trees
+Tree-like models that make decisions by asking a series of questions about the features.
+
+### Neural Networks
+Inspired by the human brain, these models can learn complex patterns through interconnected nodes (neurons).
+
+### Random Forest
+An ensemble method that combines multiple decision trees to improve accuracy and reduce overfitting.
+
+## Applications
+Machine learning is used in recommendation systems, image recognition, natural language processing, fraud detection, medical diagnosis, and autonomous vehicles.
+
+## Getting Started
+Begin with understanding your data, choosing appropriate algorithms, and iteratively improving your models through experimentation and validation.`
+            },
+            'web-dev': {
+                title: 'Web Development Handbook',
+                content: `# Web Development Handbook
+
+## Introduction to Web Development
+Web development involves creating websites and web applications that run in web browsers. It encompasses both frontend (client-side) and backend (server-side) development.
+
+## Frontend Development
+
+### HTML (HyperText Markup Language)
+HTML provides the structure and content of web pages using elements and tags. Key concepts include:
+- Semantic HTML for better accessibility and SEO
+- Forms for user input
+- Media elements for images, videos, and audio
+
+### CSS (Cascading Style Sheets)
+CSS controls the visual presentation and layout of web pages. Modern CSS includes:
+- Flexbox and Grid for responsive layouts
+- CSS Variables for maintainable code
+- Animations and transitions for interactive experiences
+- Media queries for responsive design
+
+### JavaScript
+JavaScript adds interactivity and dynamic behavior to web pages. Core concepts include:
+- DOM manipulation for updating page content
+- Event handling for user interactions
+- Asynchronous programming with Promises and async/await
+- Modern ES6+ features like arrow functions and destructuring
+
+### Frontend Frameworks
+Popular frameworks and libraries include:
+- React: Component-based library for building user interfaces
+- Vue.js: Progressive framework for building UIs
+- Angular: Full-featured framework for large applications
+
+## Backend Development
+
+### Server-Side Languages
+Common backend languages include:
+- Node.js: JavaScript runtime for server-side development
+- Python: With frameworks like Django and Flask
+- PHP: Widely used for web development
+- Java: Enterprise-level applications with Spring
+- C#: Microsoft's .NET framework
+
+### Databases
+Data storage solutions include:
+- Relational databases (MySQL, PostgreSQL, SQLite)
+- NoSQL databases (MongoDB, Redis, Cassandra)
+- Database design and normalization principles
+
+### APIs and Web Services
+- RESTful APIs for data exchange
+- GraphQL for flexible data querying
+- Authentication and authorization
+- API documentation and testing
+
+## Development Tools and Workflow
+
+### Version Control
+Git is essential for tracking changes and collaborating:
+- Repository management
+- Branching and merging strategies
+- Collaboration workflows (GitHub, GitLab)
+
+### Build Tools and Package Managers
+- npm/yarn for JavaScript packages
+- Webpack for bundling assets
+- Babel for JavaScript transpilation
+- Task runners like Gulp or npm scripts
+
+### Development Environment
+- Code editors (VS Code, Sublime Text)
+- Browser developer tools
+- Local development servers
+- Debugging techniques
+
+## Web Performance
+
+### Optimization Techniques
+- Minification and compression
+- Image optimization
+- Lazy loading
+- Caching strategies
+- Content Delivery Networks (CDNs)
+
+### Performance Metrics
+- Page load time
+- First Contentful Paint
+- Largest Contentful Paint
+- Cumulative Layout Shift
+
+## Security Best Practices
+
+### Common Vulnerabilities
+- Cross-Site Scripting (XSS)
+- SQL Injection
+- Cross-Site Request Forgery (CSRF)
+- Authentication and session management
+
+### Security Measures
+- Input validation and sanitization
+- HTTPS implementation
+- Secure headers
+- Regular security audits
+
+## Responsive Design
+Creating websites that work across all devices:
+- Mobile-first approach
+- Flexible grid systems
+- Scalable images and media
+- Touch-friendly interfaces
+
+## Testing and Deployment
+
+### Testing Strategies
+- Unit testing for individual components
+- Integration testing for system interactions
+- End-to-end testing for user workflows
+- Performance testing
+
+### Deployment Options
+- Traditional web hosting
+- Cloud platforms (AWS, Google Cloud, Azure)
+- Static site generators and JAMstack
+- Containerization with Docker
+
+## Modern Web Development Trends
+- Progressive Web Apps (PWAs)
+- Single Page Applications (SPAs)
+- Serverless architecture
+- Microservices
+- WebAssembly for high-performance applications
+
+## Career Path
+Web development offers diverse career opportunities from frontend specialists to full-stack developers, with continuous learning being essential due to rapidly evolving technologies.`
+            }
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            createParticles();
+        });
+
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+                
+                // Random colors
+                const colors = ['var(--neon-blue)', 'var(--neon-purple)', 'var(--neon-pink)'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.background = color;
+                particle.style.boxShadow = 0 0 6px ${color};
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        function setupEventListeners() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const questionInput = document.getElementById('questionInput');
+
+            // File upload events
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Question input events
+            questionInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendQuestion();
+                }
+            });
+
+            // Model selection events
+            document.getElementById('llmModel').addEventListener('change', updateModelConfig);
+            document.getElementById('embeddingModel').addEventListener('change', updateModelConfig);
+            document.getElementById('vectorDb').addEventListener('change', updateModelConfig);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            processFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            processFiles(files);
+        }
+
+        async function processFiles(files) {
+            if (files.length === 0) return;
+            
+            const file = files[0]; // Process first file for demo
+            showProcessingStatus(true);
+            
+            try {
+                const content = await readFileContent(file);
+                await processDocument(file.name, content);
+                showProcessingStatus(false);
+                updateDocumentList(file.name);
+                enableChat();
+            } catch (error) {
+                console.error('Error processing file:', error);
+                showProcessingStatus(false);
+                showError('Failed to process document. Please try again.');
+            }
+        }
+
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+
+        async function processDocument(filename, content) {
+            currentDocument = {
+                name: filename,
+                content: content
+            };
+
+            // Simulate document chunking and embedding
+            documentChunks = chunkDocument(content);
+            
+            // Simulate embedding generation (in real implementation, this would call an API)
+            await simulateEmbeddingGeneration();
+        }
+
+        function chunkDocument(content) {
+            // Simple chunking by paragraphs and sections
+            const chunks = [];
+            const sections = content.split(/\n\s*\n/);
+            
+            sections.forEach((section, index) => {
+                if (section.trim().length > 50) {
+                    chunks.push({
+                        id: index,
+                        content: section.trim(),
+                        embedding: generateMockEmbedding() // Mock embedding
+                    });
+                }
+            });
+            
+            return chunks;
+        }
+
+        function generateMockEmbedding() {
+            // Generate a mock embedding vector (in real implementation, use actual embedding API)
+            return Array.from({length: 384}, () => Math.random() - 0.5);
+        }
+
+        async function simulateEmbeddingGeneration() {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
+        function loadSampleDocument(docId) {
+            const doc = sampleDocuments[docId];
+            if (!doc) return;
+
+            showProcessingStatus(true);
+            
+            setTimeout(async () => {
+                await processDocument(doc.title, doc.content);
+                showProcessingStatus(false);
+                updateDocumentList(doc.title);
+                enableChat();
+                showSuggestedQuestions(docId);
+            }, 1000);
+        }
+
+        function showProcessingStatus(show) {
+            const status = document.getElementById('processingStatus');
+            status.classList.toggle('hidden', !show);
+            isProcessing = show;
+        }
+
+        function updateDocumentList(filename) {
+            const list = document.getElementById('documentList');
+            list.innerHTML = `
+                <div class="glass-card border border-green-400/50 rounded-xl p-4 neon-glow">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-green-400 to-emerald-500 flex items-center justify-center mr-3">
+                            <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-white">${filename}</div>
+                            <div class="text-xs text-green-300 font-mono">${documentChunks.length} neural chunks processed</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function enableChat() {
+            const questionInput = document.getElementById('questionInput');
+            const sendButton = document.getElementById('sendButton');
+            const chatStatus = document.getElementById('chatStatus');
+            
+            questionInput.disabled = false;
+            sendButton.disabled = false;
+            questionInput.placeholder = "Ask a question about your document...";
+            chatStatus.textContent = Ready to answer questions about "${currentDocument.name}";
+            
+            // Clear welcome message
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+        }
+
+        function showSuggestedQuestions(docId) {
+            const suggestions = {
+                'ml-guide': [
+                    "What is the difference between supervised and unsupervised learning?",
+                    "What are some popular machine learning algorithms?",
+                    "How do you evaluate machine learning models?"
+                ],
+                'web-dev': [
+                    "What are the main frontend technologies?",
+                    "What is the difference between frontend and backend development?",
+                    "What are some web security best practices?"
+                ]
+            };
+
+            const suggestedQuestions = document.getElementById('suggestedQuestions');
+            const questionSuggestions = document.getElementById('questionSuggestions');
+            
+            if (suggestions[docId]) {
+                questionSuggestions.innerHTML = suggestions[docId].map(q => 
+                    <button onclick="askSuggestedQuestion('${q}')" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full transition-colors">${q}</button>
+                ).join('');
+                suggestedQuestions.classList.remove('hidden');
+            }
+        }
+
+        function askSuggestedQuestion(question) {
+            document.getElementById('questionInput').value = question;
+            sendQuestion();
+        }
+
+        async function sendQuestion() {
+            const questionInput = document.getElementById('questionInput');
+            const question = questionInput.value.trim();
+            
+            if (!question || !currentDocument || isProcessing) return;
+            
+            questionInput.value = '';
+            addMessage('user', question);
+            
+            // Show typing indicator
+            const typingId = addTypingIndicator();
+            
+            try {
+                const answer = await generateAnswer(question);
+                removeMessage(typingId);
+                addMessage('assistant', answer.text, answer.sources);
+            } catch (error) {
+                removeMessage(typingId);
+                addMessage('assistant', 'Sorry, I encountered an error while processing your question. Please try again.');
+            }
+        }
+
+        function updateModelConfig() {
+            const llmModel = document.getElementById('llmModel').value;
+            const embeddingModel = document.getElementById('embeddingModel').value;
+            const vectorDb = document.getElementById('vectorDb').value;
+            
+            currentConfig = {
+                llm: llmModel,
+                embedding: embeddingModel,
+                vectorDb: vectorDb
+            };
+            
+            updateModelInfoDisplay();
+            
+            // Show notification about model change
+            if (currentDocument) {
+                addMessage('assistant', 🔄 Model configuration updated! Now using ${getModelDisplayName(llmModel)} for generation, ${getEmbeddingDisplayName(embeddingModel)} for embeddings, and ${vectorDb.toUpperCase()} for vector storage.);
+            }
+        }
+
+        function getModelDisplayName(modelId) {
+            const modelNames = {
+                'gpt-4': 'GPT-4',
+                'gpt-3.5-turbo': 'GPT-3.5 Turbo',
+                'claude-3-opus': 'Claude 3 Opus',
+                'claude-3-sonnet': 'Claude 3 Sonnet',
+                'gemini-pro': 'Gemini Pro',
+                'llama-2-70b': 'Llama 2 70B',
+                'mistral-large': 'Mistral Large',
+                'cohere-command': 'Cohere Command'
+            };
+            return modelNames[modelId] || modelId;
+        }
+
+        function getEmbeddingDisplayName(modelId) {
+            const embeddingNames = {
+                'text-embedding-3-large': 'OpenAI Large',
+                'text-embedding-ada-002': 'OpenAI Ada-002',
+                'sentence-transformers': 'Sentence Transformers',
+                'cohere-embed': 'Cohere Embed',
+                'voyage-large': 'Voyage Large',
+                'e5-large': 'E5-Large'
+            };
+            return embeddingNames[modelId] || modelId;
+        }
+
+        function updateModelInfoDisplay() {
+            const modelInfo = document.getElementById('modelInfo');
+            const llmName = getModelDisplayName(currentConfig.llm);
+            const embeddingName = getEmbeddingDisplayName(currentConfig.embedding);
+            const vectorDbName = currentConfig.vectorDb.toUpperCase();
+            
+            modelInfo.innerHTML = `
+                <div class="text-xs text-blue-700">
+                    <div class="font-medium mb-1">Current Configuration:</div>
+                    <div>LLM: ${llmName} • Embedding: ${embeddingName} • Vector DB: ${vectorDbName}</div>
+                </div>
+            `;
+        }
+
+        async function generateAnswer(question) {
+            // Simulate different processing times based on model
+            const processingTimes = {
+                'gpt-4': 3000,
+                'gpt-3.5-turbo': 1500,
+                'claude-3-opus': 2500,
+                'claude-3-sonnet': 2000,
+                'gemini-pro': 1800,
+                'llama-2-70b': 3500,
+                'mistral-large': 2200,
+                'cohere-command': 1700
+            };
+            
+            const processingTime = processingTimes[currentConfig.llm] || 2000;
+            await new Promise(resolve => setTimeout(resolve, processingTime));
+            
+            // Simple keyword-based retrieval simulation
+            const relevantChunks = retrieveRelevantChunks(question);
+            const answer = generateAnswerFromChunks(question, relevantChunks);
+            
+            return {
+                text: answer,
+                sources: relevantChunks.slice(0, 2) // Top 2 sources
+            };
+        }
+
+        function retrieveRelevantChunks(question) {
+            const questionLower = question.toLowerCase();
+            const keywords = questionLower.split(' ').filter(word => word.length > 3);
+            
+            // Score chunks based on keyword matches
+            const scoredChunks = documentChunks.map(chunk => {
+                const chunkLower = chunk.content.toLowerCase();
+                let score = 0;
+                
+                keywords.forEach(keyword => {
+                    const matches = (chunkLower.match(new RegExp(keyword, 'g')) || []).length;
+                    score += matches;
+                });
+                
+                return { ...chunk, score };
+            });
+            
+            // Return top scoring chunks
+            return scoredChunks
+                .filter(chunk => chunk.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 3);
+        }
+
+        function generateAnswerFromChunks(question, chunks) {
+            if (chunks.length === 0) {
+                return "I couldn't find relevant information in the document to answer your question. Please try rephrasing or asking about a different topic.";
+            }
+            
+            // Generate answer based on selected model style
+            const questionLower = question.toLowerCase();
+            let baseAnswer = '';
+            
+            if (questionLower.includes('difference between') || questionLower.includes('vs')) {
+                baseAnswer = generateComparisonAnswer(chunks);
+            } else if (questionLower.includes('what is') || questionLower.includes('what are')) {
+                baseAnswer = generateDefinitionAnswer(chunks);
+            } else if (questionLower.includes('how') || questionLower.includes('steps')) {
+                baseAnswer = generateHowToAnswer(chunks);
+            } else {
+                baseAnswer = generateGeneralAnswer(chunks);
+            }
+            
+            // Apply model-specific styling
+            return applyModelStyle(baseAnswer, currentConfig.llm);
+        }
+
+        function applyModelStyle(answer, modelId) {
+            const modelStyles = {
+                'gpt-4': (text) => ${text}\n\n*Generated using GPT-4 for comprehensive analysis*,
+                'claude-3-opus': (text) => ${text}\n\n*Claude 3 Opus provides detailed reasoning and context*,
+                'claude-3-sonnet': (text) => ${text}\n\n*Claude 3 Sonnet offers balanced speed and accuracy*,
+                'gemini-pro': (text) => ${text}\n\n*Gemini Pro delivers multimodal understanding*,
+                'llama-2-70b': (text) => ${text}\n\n*Llama 2 70B provides open-source intelligence*,
+                'mistral-large': (text) => ${text}\n\n*Mistral Large offers efficient European AI*,
+                'cohere-command': (text) => ${text}\n\n*Cohere Command specializes in business applications*,
+                'gpt-3.5-turbo': (text) => ${text}\n\n*GPT-3.5 Turbo provides fast, reliable responses*
+            };
+            
+            const styleFunction = modelStyles[modelId];
+            return styleFunction ? styleFunction(answer) : answer;
+        }
+
+        function generateComparisonAnswer(chunks) {
+            const content = chunks[0].content;
+            
+            if (content.includes('supervised') && content.includes('unsupervised')) {
+                return "Supervised learning involves labeled data and teaches the model using input-output pairs, where the algorithm learns from training data that includes both input features and correct answers. Unsupervised learning deals with unlabeled data and finds hidden patterns or groupings without knowing the correct answers. Supervised learning is used for tasks like classification and regression, while unsupervised learning is used for clustering and association tasks.";
+            }
+            
+            if (content.includes('frontend') && content.includes('backend')) {
+                return "Frontend development focuses on the client-side user interface and user experience, involving technologies like HTML, CSS, and JavaScript that run in web browsers. Backend development handles server-side logic, databases, and APIs that power the application behind the scenes. Frontend developers create what users see and interact with, while backend developers build the infrastructure and data management systems.";
+            }
+            
+            return Based on the document: ${content.substring(0, 300)}...;
+        }
+
+        function generateDefinitionAnswer(chunks) {
+            const content = chunks[0].content;
+            
+            // Extract the most relevant sentence or paragraph
+            const sentences = content.split(/[.!?]+/);
+            const relevantSentence = sentences.find(s => s.length > 50) || sentences[0];
+            
+            return relevantSentence.trim() + '.';
+        }
+
+        function generateHowToAnswer(chunks) {
+            const content = chunks[0].content;
+            
+            // Look for step-by-step content or process descriptions
+            if (content.includes('steps') || content.includes('process')) {
+                return Here's the process described in the document: ${content.substring(0, 400)}...;
+            }
+            
+            return According to the document: ${content.substring(0, 300)}...;
+        }
+
+        function generateGeneralAnswer(chunks) {
+            const content = chunks[0].content;
+            return Based on the document content: ${content.substring(0, 350)}...;
+        }
+
+        function addMessage(type, content, sources = []) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageId = 'msg-' + Date.now();
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.id = messageId;
+            messageDiv.className = flex ${type === 'user' ? 'justify-end' : 'justify-start'};
+            
+            let sourcesHtml = '';
+            if (sources && sources.length > 0) {
+                sourcesHtml = `
+                    <div class="mt-3 pt-3 border-t border-gray-200">
+                        <div class="text-xs text-gray-500 mb-2">📚 Sources:</div>
+                        ${sources.map((source, index) => `
+                            <div class="chunk-highlight text-xs mb-2 p-2 rounded">
+                                <strong>Chunk ${source.id + 1}:</strong> ${source.content.substring(0, 150)}...
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    type === 'user' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-100 text-gray-800'
+                }">
+                    <div class="text-sm">${content}</div>
+                    ${sourcesHtml}
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            return messageId;
+        }
+
+        function addTypingIndicator() {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageId = 'typing-' + Date.now();
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.id = messageId;
+            messageDiv.className = 'flex justify-start';
+            messageDiv.innerHTML = `
+                <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-100">
+                    <div class="flex space-x-1">
+                        <div class="typing-indicator"></div>
+                        <div class="typing-indicator"></div>
+                        <div class="typing-indicator"></div>
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            return messageId;
+        }
+
+        function removeMessage(messageId) {
+            const message = document.getElementById(messageId);
+            if (message) {
+                message.remove();
+            }
+        }
+
+        function showError(message) {
+            addMessage('assistant', ❌ ${message});
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97abeb5581955524',t:'MTc1NzE0MDI0My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
