@@ -955,8 +955,8 @@ Web development offers diverse career opportunities from frontend specialists to
             
             questionInput.disabled = false;
             sendButton.disabled = false;
-            questionInput.placeholder = "Ask a question about your document...";
-            chatStatus.textContent = Ready to answer questions about "${currentDocument.name}";
+            questionInput.placeholder = "Enter neural query...";
+            chatStatus.textContent = NEURAL INTERFACE ACTIVE • ANALYZING: "${currentDocument.name}";
             
             // Clear welcome message
             const chatMessages = document.getElementById('chatMessages');
@@ -982,7 +982,7 @@ Web development offers diverse career opportunities from frontend specialists to
             
             if (suggestions[docId]) {
                 questionSuggestions.innerHTML = suggestions[docId].map(q => 
-                    <button onclick="askSuggestedQuestion('${q}')" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full transition-colors">${q}</button>
+                    <button onclick="askSuggestedQuestion('${q}')" class="text-xs glass-card border border-cyan-400/30 hover:border-cyan-400 text-cyan-300 hover:text-white px-3 py-2 rounded-lg transition-all font-mono">${q}</button>
                 ).join('');
                 suggestedQuestions.classList.remove('hidden');
             }
@@ -1067,9 +1067,13 @@ Web development offers diverse career opportunities from frontend specialists to
             const vectorDbName = currentConfig.vectorDb.toUpperCase();
             
             modelInfo.innerHTML = `
-                <div class="text-xs text-blue-700">
-                    <div class="font-medium mb-1">Current Configuration:</div>
-                    <div>LLM: ${llmName} • Embedding: ${embeddingName} • Vector DB: ${vectorDbName}</div>
+                <div class="text-xs text-cyan-300 font-mono">
+                    <div class="font-bold mb-2 text-white">ACTIVE CONFIGURATION:</div>
+                    <div class="space-y-1">
+                        <div>🧠 LLM: <span class="text-cyan-400">${llmName}</span></div>
+                        <div>🔗 Embedding: <span class="text-purple-400">${embeddingName}</span></div>
+                        <div>💾 Vector DB: <span class="text-pink-400">${vectorDbName}</span></div>
+                    </div>
                 </div>
             `;
         }
@@ -1214,11 +1218,12 @@ Web development offers diverse career opportunities from frontend specialists to
             let sourcesHtml = '';
             if (sources && sources.length > 0) {
                 sourcesHtml = `
-                    <div class="mt-3 pt-3 border-t border-gray-200">
-                        <div class="text-xs text-gray-500 mb-2">📚 Sources:</div>
+                    <div class="mt-3 pt-3 border-t border-cyan-400/30">
+                        <div class="text-xs text-cyan-400 mb-2 font-mono font-bold">🔗 NEURAL SOURCES:</div>
                         ${sources.map((source, index) => `
-                            <div class="chunk-highlight text-xs mb-2 p-2 rounded">
-                                <strong>Chunk ${source.id + 1}:</strong> ${source.content.substring(0, 150)}...
+                            <div class="chunk-highlight text-xs mb-2 p-3 rounded-lg">
+                                <strong class="text-cyan-300">Neural Chunk ${source.id + 1}:</strong> 
+                                <span class="text-cyan-100">${source.content.substring(0, 150)}...</span>
                             </div>
                         `).join('')}
                     </div>
@@ -1226,12 +1231,12 @@ Web development offers diverse career opportunities from frontend specialists to
             }
             
             messageDiv.innerHTML = `
-                <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                <div class="max-w-xs lg:max-w-md px-4 py-3 rounded-xl ${
                     type === 'user' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'message-user text-white font-medium' 
+                        : 'message-assistant text-cyan-100 border border-cyan-400/30'
                 }">
-                    <div class="text-sm">${content}</div>
+                    <div class="text-sm font-mono">${content}</div>
                     ${sourcesHtml}
                 </div>
             `;
@@ -1250,11 +1255,12 @@ Web development offers diverse career opportunities from frontend specialists to
             messageDiv.id = messageId;
             messageDiv.className = 'flex justify-start';
             messageDiv.innerHTML = `
-                <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-100">
-                    <div class="flex space-x-1">
+                <div class="max-w-xs lg:max-w-md px-4 py-3 rounded-xl glass-card border border-cyan-400/30">
+                    <div class="flex space-x-2 items-center">
                         <div class="typing-indicator"></div>
                         <div class="typing-indicator"></div>
                         <div class="typing-indicator"></div>
+                        <span class="text-xs text-cyan-300 font-mono ml-2">NEURAL PROCESSING...</span>
                     </div>
                 </div>
             `;
@@ -1273,8 +1279,8 @@ Web development offers diverse career opportunities from frontend specialists to
         }
 
         function showError(message) {
-            addMessage('assistant', ❌ ${message});
+            addMessage('assistant', ⚠ NEURAL ERROR: ${message});
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97abeb5581955524',t:'MTc1NzE0MDI0My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97bb25e77581918a',t:'MTc1NzI5OTkyOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
